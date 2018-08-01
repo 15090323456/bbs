@@ -65,6 +65,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'bbs.wsgi.application'
 
+REDIS = {
+    'host': 'localhost',
+    'port': 6379,
+    'db': 4,
+}
+
 # Cache
 # Django 默认缓存配置
 # CACHES = {
