@@ -19,12 +19,24 @@ class Post(models.Model):
         return Comment.objects.filter(post_id=self.id).order_by('-id')
 
     def tags(self):
-        '''TODO'''
-        pass
+        relations = PostTagRelation.objects.filter(post_id=self.id).only('tag_id')
+        tag_id_list = [r.tag_id for r in relations]
+        return Tag.objects.filter(id__in=tag_id_list)
 
     def update_tags(self, tag_names):
-        '''TODO'''
-        pass
+        '''更新当前 Post 的 tag'''
+        Tag.ensure_exist(tag_names)
+
+        update_names = set(tag_names)
+        exist_names ={t.name for t in  self.tags()}
+
+        # 筛选待创建的关系
+        need_create_names = update_names - exist_names
+        PostTagRelation.add_post_tags(self.id, need_create_names)
+
+        # 筛选出需要删除的关系
+        need_delete_names = exist_names - update_names
+        PostTagRelation.del_post_tags(self.id, need_delete_names)
 
 
 class Comment(models.Model):
@@ -49,6 +61,18 @@ class Comment(models.Model):
 class Tag(models.Model):
     name = models.CharField(max_length=16, unique=True)
 
+    @classmethod
+    def ensure_exist(cls, names):
+        exist_names = {t.name for t in cls.objects.filter(name__in=names)}
+        new_names = set(names) - exist_names
+        new_tags = [cls(name=name) for name in new_names]
+        cls.objects.bulk_create(new_tags)
+
+    def posts(self):
+        relations = PostTagRelation.objects.filter(tag_id=self.id).only('post_id')
+        post_id_list = [r.post_id for r in relations]
+        return Post.objects.filter(id__in=post_id_list)
+
 
 class PostTagRelation(models.Model):
     '''
@@ -64,3 +88,14 @@ class PostTagRelation(models.Model):
     '''
     post_id = models.IntegerField()
     tag_id = models.IntegerField()
+
+    @classmethod
+    def add_post_tags(cls, post_id, tag_names):
+        tags = Tag.objects.filter(name__in=tag_names).only('id')
+        new_relations = [cls(post_id=post_id, tag_id=t.id) for t in tags]
+        cls.objects.bulk_create(new_relations)
+
+    @classmethod
+    def del_post_tags(cls, post_id, tag_names):
+        tag_id_list = [t.id for t in Tag.objects.filter(name__in=tag_names).only('id')]
+        cls.objects.filter(post_id=post_id, tag_id__in=tag_id_list).delete()
