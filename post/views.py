@@ -43,6 +43,11 @@ def edit_post(request):
         post.title = request.POST.get('title')
         post.content = request.POST.get('content')
         post.save()
+        str_tags = request.POST.get('tags')
+        tag_names = [x.strip()
+                     for x in str_tags.title().replace('，', ',').split(',')
+                     if x.strip()]
+        post.update_tags(tag_names)
         return redirect('/post/read/?post_id=%s' % post.id)
     else:
         post_id = int(request.GET.get('post_id'))
