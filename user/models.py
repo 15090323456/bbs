@@ -11,7 +11,6 @@ class User(models.Model):
     password = models.CharField(max_length=128)
     icon = models.ImageField()
     plt_icon = models.CharField(max_length=256, default='')
-
     age = models.IntegerField(default=18)
     sex = models.CharField(max_length=8, choices=SEX)
 
